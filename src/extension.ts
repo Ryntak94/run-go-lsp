@@ -1,25 +1,43 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
+import { exec } from "child_process";
+import {
+  ServerOptions,
+  LanguageClientOptions,
+  LanguageClient,
+} from "vscode-languageclient/node";
+import path from "path";
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
+  const activateOutput = vscode.window.createOutputChannel("activateFunc");
+  const absPath = context.asAbsolutePath(path.join("..", "go-lsp"));
+  const serverOptions: ServerOptions = () => {
+    return new Promise(() => {
+      const process = exec(
+        `cd ${absPath} && make dev`,
+        (error, stdout, stderr) => {
+          activateOutput.appendLine(stdout);
+          activateOutput.appendLine(stderr);
+        },
+      );
+      activateOutput.appendLine(JSON.stringify(process));
+      return process;
+    });
+  };
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "go-lsp" is now active!');
+  const clientOptions: LanguageClientOptions = {
+    documentSelector: [
+      {
+        language: "go",
+      },
+    ],
+  };
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	const disposable = vscode.commands.registerCommand('go-lsp.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello VS Code');
-	});
-
-	context.subscriptions.push(disposable);
+  const client = new LanguageClient(
+    "vs-code-go-lsp-extension",
+    serverOptions,
+    clientOptions,
+  );
+  client.start();
 }
 
 // This method is called when your extension is deactivated
