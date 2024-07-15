@@ -6,22 +6,14 @@ import {
   LanguageClient,
 } from "vscode-languageclient/node";
 import path from "path";
-
 export function activate(context: vscode.ExtensionContext) {
-  const activateOutput = vscode.window.createOutputChannel("activateFunc");
-  const absPath = context.asAbsolutePath(path.join("..", "go-lsp"));
+  const absPath = context.asAbsolutePath(
+    path.join("..", "go-lsp", "cmd", "main"),
+  );
+
   const serverOptions: ServerOptions = () => {
-    return new Promise(() => {
-      const process = exec(
-        `cd ${absPath} && make dev`,
-        (error, stdout, stderr) => {
-          activateOutput.appendLine(stdout);
-          activateOutput.appendLine(stderr);
-        },
-      );
-      activateOutput.appendLine(JSON.stringify(process));
-      return process;
-    });
+    const process = exec(`cd ${absPath} && go run main.go`);
+    return Promise.resolve(process);
   };
 
   const clientOptions: LanguageClientOptions = {
@@ -30,6 +22,9 @@ export function activate(context: vscode.ExtensionContext) {
         language: "go",
       },
     ],
+    synchronize: {
+      fileEvents: vscode.workspace.createFileSystemWatcher("**/*.go"),
+    },
   };
 
   const client = new LanguageClient(
